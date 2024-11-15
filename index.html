@@ -17,8 +17,8 @@
   <script src="https://d3js.org/d3.v6.min.js"></script>
   <script>
     async function loadData() {
-      const exportsData = await d3.csv('WITS-Country-Timeseries_exports.csv');
-      const importsData = await d3.csv('WITS-Country-Timeseries_imports.csv');
+      const exportsData = await d3.csv('data/WITS-Country-Timeseries_exports.csv');
+      const importsData = await d3.csv('data/WITS-Country-Timeseries_imports.csv');
 
       const combinedData = exportsData.map((exportRow, index) => {
         return {
