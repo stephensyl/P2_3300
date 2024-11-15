@@ -9,6 +9,8 @@
 
 <body>
   <h1>Project 2 - Trade Explorer</h1>
+  <!-- Reference map: https://observablehq.com/@d3/world-tour -->
+  <!-- https://observablehq.com/@d3/web-mercator-tiles -->
 
   <h3>Highest export chart</h3>
   <svg id="highest-export-chart" width="960" height="500"></svg>
@@ -37,8 +39,8 @@
   <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
   <script>
     async function loadData() {
-      const exportsData = await d3.csv('WITS-Country-Timeseries_exports.csv');
-      const importsData = await d3.csv('WITS-Country-Timeseries_imports.csv');
+      const exportsData = await d3.csv('data/WITS-Country-Timeseries_exports.csv');
+      const importsData = await d3.csv('data/WITS-Country-Timeseries_imports.csv');
 
       const combinedData = exportsData.map((exportRow, index) => {
         return {
