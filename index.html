@@ -55,7 +55,8 @@
         const year = years[0];
 
         const exportsByCountry = combinedData.filter(d => d.Year == year).map(d => ({
-          country: d.PartnerName,
+          country: d.PartnerName, // Normalize country names
+
           export: +d["Export (US$ Thousand)"] || 0
         }));
 
@@ -74,7 +75,6 @@
           .enter().append("path")
           .attr("d", path)
           .attr("fill", function (d) {
-            // Safe check for country name and convert to lowercase
             const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
             const exporter = exportsByCountry.find(e => e.country === countryName);
             if (exporter) {
@@ -89,22 +89,20 @@
             // Clear any existing country export text
             svg.selectAll(".country-export-text").remove();
 
-            // Safe check for country name and convert to lowercase
             const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
             const exporter = exportsByCountry.find(e => e.country === countryName);
             const exportValue = exporter ? exporter.export : 0;
 
             // Append new country name and export value as text to the SVG
             svg.append("text")
-              .attr("x", event.offsetX) // Positioning based on click coordinates
+              .attr("x", event.offsetX)
               .attr("y", event.offsetY)
               .attr("class", "country-export-text")
               .attr("fill", "black")
               .attr("font-size", "14px")
               .attr("font-weight", "bold")
               .attr("text-anchor", "middle")
-              // display the country name and export value
-              .text(`${countryName} exports: $${exportValue}`);
+              .text(`${d.countryName}: $${exportValue}`);
           });
 
         // Add year slider
@@ -129,33 +127,44 @@
         // Function to update the map based on the selected year
         function updateMap(year) {
           const exportsByYear = combinedData.filter(d => d.Year == year).map(d => ({
-            country: d.PartnerName,
+            country: parseCountryName(d.PartnerName),
             export: +d["Export (US$ Thousand)"] || 0
           }));
 
-          // Sort and pick the top 10 exporters for the new year
           const topExportersByYear = exportsByYear.sort((a, b) => b.export - a.export).slice(0, 10);
 
           svg.selectAll("path")
             .attr("fill", function (d) {
-              // Safe check for country name and convert to lowercase
               const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
               const exporter = topExportersByYear.find(e => e.country === countryName);
               if (exporter) {
                 const rank = topExportersByYear.findIndex(e => e.country === countryName);
-                return colorScale(rank); // Color based on rank
+                return colorScale(rank);
               }
-              return "red"; // Countries not in top 10
+              return "red";
             });
         }
 
         // Initialize map with the first year
         updateMap(year);
+
+        // Function to parse PartnerName and normalize it for country comparison
+        function parseCountryName(name) {
+          const countryMapping = {
+            "united states": "united states of america",
+            "us": "united states of america",
+            "south korea": "korea, republic of",
+            "united kingdom": "united kingdom of great britain and northern ireland"
+          };
+
+          return countryMapping[name.toLowerCase()] || name.toLowerCase();
+        }
       }
 
       loadData();
     </script>
   </div>
+
 
 
 
