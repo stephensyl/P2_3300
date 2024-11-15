@@ -13,13 +13,8 @@
   <!-- https://observablehq.com/@d3/web-mercator-tiles -->
 
 
-  <!-- <script>
-      async function loadData() {
-        // Load data
-        const exportsData = await d3.csv('data/34_years_world_export_import_dataset.csv');
-        const exportsData2 = await d3.csv('data/34_years_world_export_import_dataset2.csv'); -->
   <div id="map1">
-    <h3>Highest export chart</h3>
+    <h3>Highest Export Chart</h3>
     <svg id="highest-export" width="960" height="500"></svg>
 
     <script src="https://d3js.org/d3.v6.min.js"></script>
@@ -29,7 +24,6 @@
         // Load data
         const Data = await d3.csv('data/34_years_world_export_import_dataset.csv');
         const Data2 = await d3.csv('data/34_years_world_export_import_dataset2.csv');
-
 
         // Combine data
         const combinedData = Data.map((exportRow, index) => {
@@ -43,38 +37,47 @@
         console.log("sheet2", Data2);
         console.log("combined", combinedData);
 
+        // Set up SVG canvas
         const svg = d3.select('#highest-export');
         const width = +svg.attr('width');
         const height = +svg.attr('height');
 
-        // map of all countries
+        // Load the world map data
         const world = await d3.json('https://unpkg.com/world-atlas@1/world/110m.json');
         const countries = topojson.feature(world, world.objects.countries);
 
-        // Color scale (for the top 10 highest exporters)
+        // Set up the Mercator projection
+        const projection = d3.geoMercator()
+          .scale(160) // Adjust scale for Mercator
+          .translate([width / 2, height / 1.5]); // Adjust translation for centering
+
+        const path = d3.geoPath().projection(projection);
+
+        // Set up the color scale
         const colorScale = d3.scaleLinear()
-          .domain([0, 9])
+          .domain([0, 9])  // Rank range: top 10
           .range(["lightgreen", "green"]);
 
-        // Select the year you want to display (default to the first year in the dataset)
+        // Get all available years from the data
         const years = Array.from(new Set(combinedData.map(d => d.Year)));
-        const year = years[0]; // Default year to display (first year)
+        const year = years[0]; // Default to first year in the dataset
 
+        // Extract export data for the selected year
         const exportsByCountry = combinedData.filter(d => d.Year == year).map(d => ({
           country: d.PartnerName,
           export: +d["Export (US$ Thousand)"] || 0
         }));
 
-        // Sort and pick the top 10 highest exporters
+        // Sort the countries based on exports and select top 10
         const topExporters = exportsByCountry.sort((a, b) => b.export - a.export).slice(0, 10);
         const topExportersSet = new Set(topExporters.map(d => d.country));
 
-        // Draw the world map
+        // Draw the map
         svg.append("g")
           .selectAll("path")
           .data(countries.features)
           .enter().append("path")
-          .attr("d", d3.geoPath())
+          .attr("d", path)
           .attr("fill", function (d) {
             const countryName = d.properties.name;
             const exporter = exportsByCountry.find(e => e.country === countryName);
@@ -87,10 +90,22 @@
           .attr("stroke", "white")
           .attr("id", d => d.properties.name)
           .on("click", function (event, d) {
+            // Clear any existing country export text
+            svg.selectAll(".country-export-text").remove();
+
+            // Get country name and export value
             const countryName = d.properties.name;
             const exporter = exportsByCountry.find(e => e.country === countryName);
             const exportValue = exporter ? exporter.export : 0;
-            alert(`${countryName}: $${exportValue.toLocaleString()} in exports`);
+
+            // Append new country name and export value as text to the SVG
+            svg.append("text")
+              .attr("x", event.offsetX) // Positioning based on click coordinates
+              .attr("y", event.offsetY)
+              .attr("class", "country-export-text")
+              .attr("fill", "black")
+              .attr("font-size", "14px")
+              .text(`${countryName}: $${exportValue.toLocaleString()} in exports`);
           });
 
         // Add year slider
@@ -141,6 +156,8 @@
       loadData();
     </script>
   </div>
+
+
 
 
 
