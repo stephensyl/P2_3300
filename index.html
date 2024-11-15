@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 2 - Trade Explorer</title>
+</head>
+
+<body>
+  <h1>Project 2 - Trade Explorer</h1>
+
+  <h3>Highest export chart</h3>
+  <svg id="highest-export-chart" width="960" height="500"></svg>
+
+
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script>
+    async function loadData() {
+      const exportsData = await d3.csv('WITS-Country-Timeseries_exports.csv');
+      const importsData = await d3.csv('WITS-Country-Timeseries_imports.csv');
+
+      const combinedData = exportsData.map((exportRow, index) => {
+        return {
+          ...exportRow,
+          ...importsData[index]
+        };
+      });
+
+      console.log(combinedData);
+    }
+
+    loadData();
+  </script>
+
+  <h3>Overtime Greatest export chart</h3>
+  <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
+  <script>
+    async function loadData() {
+      const exportsData = await d3.csv('WITS-Country-Timeseries_exports.csv');
+      const importsData = await d3.csv('WITS-Country-Timeseries_imports.csv');
+
+      const combinedData = exportsData.map((exportRow, index) => {
+        return {
+          ...exportRow,
+          ...importsData[index]
+        };
+      });
+
+      console.log(combinedData);
+    }
+
+    loadData();
+  </script>
+</body>
+
+</html>
