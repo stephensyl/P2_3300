@@ -152,6 +152,8 @@
             .on("mouseout", function () {
               svg.selectAll('.tooltip').remove(); // get rid of tooltip 
             })
+
+          updateMap(1988);
         });
 
       // .append("title")
@@ -172,7 +174,6 @@
           d3.select("#year-display").text(year_selected);
           updateMap(year_selected);
         })
-      updateMap(1988);
 
       const tick_values = [1988, 1998, 2018, 2008, 2013, 2018, 2021];
 
@@ -191,6 +192,18 @@
 
     loadData();
   </script>
+
+
+  <div id="key-map">
+    <h3>Key Map</h3>
+    <ul>
+      <li><span class="color-box no-data"></span> No data available</li>
+      <li><span class="color-box top-ten"></span> Top ten highest in exports (the darker the green the higher)</li>
+      <li><span class="color-box has-data"></span> Data available but not in the top ten</li>
+    </ul>
+  </div>
+
+
 
 
 </body>
