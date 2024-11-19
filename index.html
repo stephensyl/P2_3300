@@ -5,14 +5,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project 2 - Trade Explorer</title>
-  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <div id="title">
-    <h1>Project 2 - Trade Explorer</h1>
-  </div>
-
+  <h1>Project 2 - Trade Explorer</h1>
   <!-- Reference map: https://observablehq.com/@d3/world-tour -->
   <!-- https://observablehq.com/@d3/web-mercator-tiles -->
   <!-- https://d3js.org/d3-geo/cylindrical -->
@@ -22,166 +18,166 @@
     <svg id="highest-export" width="960" height="600"></svg>
     <center>
       <div></div>
-      <h3>US Export Trends Over Time (1988-2021)</h3>
-  </div>
-  </center>
-  <br><br>
-  <center>
-    <span>Current Year: <span id="year-display">1988</span></span>
-  </center>
+        <h3>Global Export Trends Over Time (1988-2021)</h3>
+      </div>
+    </center>
+    <br><br>
+    <center>
+      <span>Current Year: <span id="year-display">1988</span></span>
+    </center>
+    
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    <script>
+      async function loadData() {
 
-  <script src="https://d3js.org/d3.v6.min.js"></script>
-  <script src="https://d3js.org/topojson.v1.min.js"></script>
-  <script>
-    async function loadData() {
+        //loading the data files with await/
+        const Data = await d3.csv('data/trade_1988_2021.csv');
+        console.log("Data:", Data);
 
-      //loading the data files with await/
-      const Data = await d3.csv('data/trade_1988_2021.csv');
-      console.log("Data:", Data);
+        //CLean data set and remove unwanted data
+        const cleanData = Data.filter(d => d['TradeFlowName'] === 'Export' && d
+        ['PartnerName'] !== 'World' &&
+          d['PartnerName'] !== 'Europe & Central Asia' &&
+          d['PartnerName'] !== 'North America' &&
+          d['PartnerName'] !== 'East Asia & Pacific' &&
+          d['PartnerName'] !== 'Middle East & North Africa' &&
+          d['PartnerName'] !== 'Middle East & North Africa');
 
-      //CLean data set and remove unwanted data
-      const cleanData = Data.filter(d => d['TradeFlowName'] === 'Export' && d
-      ['PartnerName'] !== 'World' &&
-        d['PartnerName'] !== 'Europe & Central Asia' &&
-        d['PartnerName'] !== 'North America' &&
-        d['PartnerName'] !== 'East Asia & Pacific' &&
-        d['PartnerName'] !== 'Middle East & North Africa' &&
-        d['PartnerName'] !== 'Middle East & North Africa');
+        console.log("Clean Data:", cleanData);
 
-      console.log("Clean Data:", cleanData);
-
-      // adding all of the export values in each year and grouping them by reporter's name
-      const sumData = d3.rollup(cleanData, v =>
-        d3.sum(v, d => d['TradeValue in 1000 USD']), d => d['Year'], d => d['ReporterName']);
+        // adding all of the export values in each year and grouping them by reporter's name
+        const sumData = d3.rollup(cleanData, v =>
+          d3.sum(v, d => d['TradeValue in 1000 USD']), d => d['Year'], d => d['ReporterName']);
 
 
-      console.log("Sum Data:", sumData);
+        console.log("Sum Data:", sumData);
 
-      const topExporters = Array.from(sumData, ([year, reporters]) => ({
-        year,
-        reporters: Array.from(reporters, ([reporter, value]) => ({
-          reporter,
-          value
-        }))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 10)
+        const topExporters = Array.from(sumData, ([year, reporters]) => ({
+          year,
+          reporters: Array.from(reporters, ([reporter, value]) => ({
+            reporter,
+            value
+          }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10)
 
-      }));
+        }));
 
-      function updateMap(year) {
-        const countriesthisYear = sumData.get(year);
-        console.log("Countries this year:", countriesthisYear);
+        function updateMap(year) {
+          const countriesthisYear = sumData.get(year);
+          console.log("Countries this year:", countriesthisYear);
 
-        currentExporters = countriesthisYear ? Array.from(countriesthisYear, ([reporter, value]) => ({ reporter, value })) : [];
-        currentExporters = currentExporters.sort((a, b) => b.value - a.value);
+          currentExporters = countriesthisYear ? Array.from(countriesthisYear, ([reporter, value]) => ({ reporter, value })) : [];
+          currentExporters = currentExporters.sort((a, b) => b.value - a.value);
 
-        g.selectAll('path')
-          .attr('fill', d => {
-            const countryName = d.properties.name;
-            const exporterIndex = currentExporters.findIndex(e => e.reporter === countryName);
-            return exporterIndex >= 0 ? colorScale(exporterIndex) : 'lightgrey';
+          g.selectAll('path')
+            .attr('fill', d => {
+              const countryName = d.properties.name;
+              const exporterIndex = currentExporters.findIndex(e => e.reporter === countryName);
+              return exporterIndex >= 0 ? colorScale(exporterIndex) : 'lightgrey';
+            });
+
+        }
+
+        console.log("Top Exporters:", topExporters);
+
+        // need to download world map here
+        const svg = d3.select('#highest-export');
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
+        const g = svg.append('g');
+        const projection = d3.geoMercator()
+          .scale(140).translate([width / 2, height / 1.4]);
+        const path = d3.geoPath(projection);
+        const colorScale = d3.scaleLinear().domain([0, 9]).range(["lightgreen", "green"]);
+
+
+        d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+          .then(data => {
+            const countries = topojson.feature(data, data.objects.countries);
+            console.log("Countries:", countries);
+            g.selectAll('path').data(countries.features)
+              .enter().append('path')
+              .attr('class', 'country')
+              .attr('d', path)
+              .attr('stroke', 'white')
+              .on("mouseover", function (event, d) {
+                const countryName = d.properties.name;
+                console.log("Country:", countryName);
+                const exporter = currentExporters.find(e => e.reporter === countryName);
+                console.log("currentexporter:", currentExporters);
+                console.log("Exporter:", exporter);
+
+
+                if (exporter) {
+                  svg.append('g')
+                    .attr("class", "tooltip")
+                    .append('rect')
+                    .attr('x', event.offsetX - 70)
+                    .attr('y', event.offsetY - 20)
+                    .attr('width', 150)
+                    .attr('height', 20)
+                    .attr('fill', 'white')
+                    .attr('rx', 5)
+                    .attr('ry', 5);
+                  svg.select('.tooltip').append('text')
+                    .attr('x', event.offsetX)
+                    .attr('y', event.offsetY - 10)
+                    .attr('fill', 'black')
+                    .attr('font-size', '12px')
+                    .attr('font-weight', 'bold')
+                    .attr('fill', 'black')
+                    .attr('font-size', '14px')
+                    .attr('font-weight', 'bold')
+                    .attr('text-anchor', 'middle')
+                    .attr('padding', '4px')
+                    .text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`)
+                }
+
+              })
+              .on("mouseout", function () {
+                svg.selectAll('.tooltip').remove(); // get rid of tooltip 
+              })
           });
+        // .append("title")
+        // .text(d => d.properties.name);
+
+        d3.select("#map1 h3").style("margin", "0px");
+        d3.select("#highest-export").style("margin", "0px");
+        //update: its working now - slider for year selection
+        const slider = d3.select("#map1")
+          .append("input")
+          .attr("type", "range")
+          .attr("value", 1988)
+          .attr("min", 1988)
+          .attr("max", 2021)
+          .style("width", "980px")
+          .on("input", function () {
+            const year_selected = this.value;
+            d3.select("#year-display").text(year_selected);
+            updateMap(year_selected);
+          })
+        updateMap(1988);
+
+        const tick_values = [1988, 1998, 2018, 2008, 2013, 2018, 2021];
+
+        const tick = d3.select("#map1").append("div")
+          .style("position", "relative")
+
+        tick_values.forEach((year, idx) => {
+          tick.append("span")
+            .text(year)
+            .style("left", `${(idx/(tick_values.length - 1))*950}px`)
+            .style("position", "absolute");
+        });
 
       }
 
-      console.log("Top Exporters:", topExporters);
 
-      // need to download world map here
-      const svg = d3.select('#highest-export');
-      const width = +svg.attr('width');
-      const height = +svg.attr('height');
-      const g = svg.append('g');
-      const projection = d3.geoMercator()
-        .scale(140).translate([width / 2, height / 1.4]);
-      const path = d3.geoPath(projection);
-      const colorScale = d3.scaleLinear().domain([0, 9]).range(["lightgreen", "green"]);
-
-
-      d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
-        .then(data => {
-          const countries = topojson.feature(data, data.objects.countries);
-          console.log("Countries:", countries);
-          g.selectAll('path').data(countries.features)
-            .enter().append('path')
-            .attr('class', 'country')
-            .attr('d', path)
-            .attr('stroke', 'white')
-            .on("mouseover", function (event, d) {
-              const countryName = d.properties.name;
-              console.log("Country:", countryName);
-              const exporter = currentExporters.find(e => e.reporter === countryName);
-              console.log("currentexporter:", currentExporters);
-              console.log("Exporter:", exporter);
-
-
-              if (exporter) {
-                svg.append('g')
-                  .attr("class", "tooltip")
-                  .append('rect')
-                  .attr('x', event.offsetX - 70)
-                  .attr('y', event.offsetY - 20)
-                  .attr('width', 150)
-                  .attr('height', 20)
-                  .attr('fill', 'white')
-                  .attr('rx', 5)
-                  .attr('ry', 5);
-                svg.select('.tooltip').append('text')
-                  .attr('x', event.offsetX)
-                  .attr('y', event.offsetY - 10)
-                  .attr('fill', 'black')
-                  .attr('font-size', '12px')
-                  .attr('font-weight', 'bold')
-                  .attr('fill', 'black')
-                  .attr('font-size', '14px')
-                  .attr('font-weight', 'bold')
-                  .attr('text-anchor', 'middle')
-                  .attr('padding', '4px')
-                  .text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`)
-              }
-
-            })
-            .on("mouseout", function () {
-              svg.selectAll('.tooltip').remove(); // get rid of tooltip 
-            })
-        });
-      // .append("title")
-      // .text(d => d.properties.name);
-
-      d3.select("#map1 h3").style("margin", "0px");
-      d3.select("#highest-export").style("margin", "0px");
-      //update: its working now - slider for year selection
-      const slider = d3.select("#map1")
-        .append("input")
-        .attr("type", "range")
-        .attr("value", 1988)
-        .attr("min", 1988)
-        .attr("max", 2021)
-        .style("width", "980px")
-        .on("input", function () {
-          const year_selected = this.value;
-          d3.select("#year-display").text(year_selected);
-          updateMap(year_selected);
-        })
-      updateMap(1988);
-
-      const tick_values = [1988, 1998, 2018, 2008, 2013, 2018, 2021];
-
-      const tick = d3.select("#map1").append("div")
-        .style("position", "relative")
-
-      tick_values.forEach((year, idx) => {
-        tick.append("span")
-          .text(year)
-          .style("left", `${(idx / (tick_values.length - 1)) * 950}px`)
-          .style("position", "absolute");
-      });
-
-    }
-
-
-    loadData();
-  </script>
-
+      loadData();
+    </script>
+    
 
 </body>
 
