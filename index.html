@@ -46,7 +46,18 @@
         d['PartnerName'] !== 'North America' &&
         d['PartnerName'] !== 'East Asia & Pacific' &&
         d['PartnerName'] !== 'Middle East & North Africa' &&
-        d['PartnerName'] !== 'Middle East & North Africa');
+        d['PartnerName'] !== 'Middle East & North Africa').map(d => ({
+          ...d,
+          ReporterName: d['ReporterName'] === 'United States' ? 'United States of America' : d['ReporterName']
+            === 'Russian Federation' ? 'Russia' : d['ReporterName'] === 'Korea, Rep.' ? 'South Korea' : d['ReporterName']
+              === 'Iran, Islamic Rep.' ? 'Iran' : d['ReporterName'] === 'Venezuela, RB' ? 'Venezuela' : d['ReporterName']
+                === 'Viet Nam' ? 'Vietnam' : d['ReporterName'] === 'Czech Republic' ? 'Czechia' : d['ReporterName']
+                  === 'Slovak Republic' ? 'Slovakia' : d['ReporterName'] === 'Congo, Dem. Rep.' ? 'Congo (Kinshasa)' : d['ReporterName']
+                    === 'Congo, Rep.' ? 'Dem. Rep. Congo' : d['ReporterName'] === 'Lao PDR' ? 'Laos' : d['ReporterName']
+                      === 'Syrian Arab Republic' ? 'Syria' : d['ReporterName'] === 'Egypt, Arab Rep.' ? 'Egypt' : d['ReporterName'] === 'Serbia, FR(Serbia/Montenegro)' ? 'Serbia' : d['ReporterName']
+                        === 'Yemen, Rep.' ? 'Yemen' : d['ReporterName']
+
+        }));
 
       console.log("Clean Data:", cleanData);
 
@@ -79,7 +90,7 @@
           .attr('fill', d => {
             const countryName = d.properties.name;
             const exporterIndex = currentExporters.findIndex(e => e.reporter === countryName);
-            return exporterIndex >= 0 ? colorScale(exporterIndex) : 'lightgrey';
+            return exporterIndex >= 0 ? colorScale(exporterIndex) : 'red';
           });
 
       }
@@ -94,7 +105,7 @@
       const projection = d3.geoMercator()
         .scale(140).translate([width / 2, height / 1.4]);
       const path = d3.geoPath(projection);
-      const colorScale = d3.scaleLinear().domain([0, 9]).range(["lightgreen", "green"]);
+      const colorScale = d3.scaleLinear().domain([0, 9]).range(["green", "lightgreen"]);
 
 
       d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
@@ -105,7 +116,8 @@
             .enter().append('path')
             .attr('class', 'country')
             .attr('d', path)
-            .attr('stroke', 'white')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 0.5)
             .on("mouseover", function (event, d) {
               const countryName = d.properties.name;
               console.log("Country:", countryName);
@@ -118,9 +130,9 @@
                 svg.append('g')
                   .attr("class", "tooltip")
                   .append('rect')
-                  .attr('x', event.offsetX - 70)
+                  .attr('x', event.offsetX - 100)
                   .attr('y', event.offsetY - 30)
-                  .attr('width', 150)
+                  .attr('width', 200)
                   .attr('height', 20)
                   .attr('fill', 'white')
                   .attr('stroke', 'black')
@@ -141,6 +153,7 @@
               svg.selectAll('.tooltip').remove(); // get rid of tooltip 
             })
         });
+
       // .append("title")
       // .text(d => d.properties.name);
 
