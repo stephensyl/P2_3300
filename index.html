@@ -277,19 +277,35 @@
               .on("mouseover", function (event, d) {
                 const countryName = d.properties.name;
                 console.log("Country:", countryName);
-                const exporter = (sumData.get(year)).find(countryName);
+                const exporter = currentExporters.find(e => e.reporter === countryName);
                 console.log("currentexporter:", currentExporters);
                 console.log("Exporter:", exporter);
 
 
-                svg.append('g').selectAll('*').remove(); // Clear any existing tooltip text
-                svg.append('g').append('text')
-                  .attr('x', event.offsetX)
-                  .attr('y', event.offsetY - 10)
-                  .attr('fill', 'black')
-                  .attr('font-size', '12px')
-                  .attr('font-weight', 'bold')
-                  .text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`);
+                if (exporter) {
+                  svg.append('g').selectAll('#map1').remove(); // Clear any existing tooltip text
+                  svg.append('g')
+                    .append('rect')
+                    .attr('x', event.offsetX - 70)
+                    .attr('y', event.offsetY - 20)
+                    .attr('width', 150)
+                    .attr('height', 20)
+                    .attr('fill', 'white')
+                    .attr('rx', 5)
+                    .attr('ry', 5);
+                  svg.append('g').append('text')
+                    .attr('x', event.offsetX)
+                    .attr('y', event.offsetY - 10)
+                    .attr('fill', 'black')
+                    .attr('font-size', '12px')
+                    .attr('font-weight', 'bold')
+                    .attr('fill', 'black')
+                    .attr('font-size', '14px')
+                    .attr('font-weight', 'bold')
+                    .attr('text-anchor', 'middle')
+                    .attr('padding', '4px')
+                    .text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`)
+                }
 
               })
               .on("mouseout", function () {
