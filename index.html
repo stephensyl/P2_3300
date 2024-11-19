@@ -21,79 +21,92 @@
     <script src="https://d3js.org/topojson.v1.min.js"></script>
     <script>
       async function loadData() {
-        // Load data
-        const Data = await d3.csv('data/34_years_world_export_import_dataset.csv');
-        const Data2 = await d3.csv('data/34_years_world_export_import_dataset2.csv');
+        // Load data files with error handling
+        const Data = await d3.csv('data/34_years_world_export_import_dataset.csv')
+          .catch(err => console.error("Error loading Dataset1:", err));
+        const Data2 = await d3.csv('data/34_years_world_export_import_dataset2.csv')
+          .catch(err => console.error("Error loading Dataset2:", err));
 
-        // Combine data
-        const combinedData = Data.map((exportRow, index) => {
-          return {
-            ...exportRow,
-            ...Data2[index]
-          };
-        });
+        // Validate if datasets are loaded properly
+        if (!Data || !Data2) {
+          console.error("One or both datasets failed to load.");
+          return;
+        }
 
-        console.log("sheet1", Data);
-        console.log("sheet2", Data2);
-        console.log("combined", combinedData);
+        console.log("Dataset1 Loaded:", Data);
+        console.log("Dataset2 Loaded:", Data2);
 
+        // Combine datasets (assuming rows align by index)
+        const combinedData = Data.map((exportRow, index) => ({
+          ...exportRow,
+          ...Data2[index]
+        }));
+
+        console.log("Combined Data:", combinedData);
+
+        // Setup SVG dimensions
         const svg = d3.select('#highest-export');
         const width = +svg.attr('width');
         const height = +svg.attr('height');
 
-        // map of all countries
+        // Load world map
         const world = await d3.json('https://unpkg.com/world-atlas@1/world/110m.json');
         const countries = topojson.feature(world, world.objects.countries);
 
-        // Color scale (for the top 10 highest exporters)
+        // Color scale for top 10 exporters
         const colorScale = d3.scaleLinear()
           .domain([0, 9])
           .range(["lightgreen", "green"]);
 
-        // Select the year you want to display (default to the first year in the dataset)
+        // Get available years and default to the first
         const years = Array.from(new Set(combinedData.map(d => d.Year)));
         const year = years[0];
 
-        const exportsByCountry = combinedData.filter(d => d.Year == year).map(d => ({
-          country: d.PartnerName, // Normalize country names
+        // Filter data for the selected year
+        const exportsByCountry = combinedData
+          .filter(d => d.Year == year)
+          .map(d => ({
+            country: parseCountryName(d.PartnerName),
+            export: +d["Export (US$ Thousand)"] || 0
+          }));
 
-          export: +d["Export (US$ Thousand)"] || 0
-        }));
+        // Sort and select the top 10 exporters
+        const topExporters = exportsByCountry
+          .sort((a, b) => b.export - a.export)
+          .slice(0, 10);
 
-        // Sort and pick the top 10 highest exporters
-        const topExporters = exportsByCountry.sort((a, b) => b.export - a.export).slice(0, 10);
-
-        // Draw the world map
+        // Map projection and path
         const projection = d3.geoMercator()
           .scale(150)
           .translate([width / 2, height / 1.5]);
         const path = d3.geoPath().projection(projection);
 
+        // Draw the world map
         svg.append("g")
           .selectAll("path")
           .data(countries.features)
           .enter().append("path")
           .attr("d", path)
-          .attr("fill", function (d) {
+          .attr("fill", d => {
             const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
             const exporter = exportsByCountry.find(e => e.country === countryName);
             if (exporter) {
               const rank = topExporters.findIndex(e => e.country === countryName);
-              return rank >= 0 ? colorScale(rank) : "lightgray"; // Color based on rank
+              return rank >= 0 ? colorScale(rank) : "lightgray";
             }
-            return "lightgray"; // Countries not in top 10
+            return "red";
           })
           .attr("stroke", "white")
           .attr("id", d => d.properties.name)
-          .on("click", function (event, d) {
-            // Clear any existing country export text
-            svg.selectAll(".country-export-text").remove();
-
+          .on("click", (event, d) => {
             const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
             const exporter = exportsByCountry.find(e => e.country === countryName);
             const exportValue = exporter ? exporter.export : 0;
 
-            // Append new country name and export value as text to the SVG
+            // Remove previous annotations
+            svg.selectAll(".country-export-text").remove();
+
+            // Display country export information
             svg.append("text")
               .attr("x", event.offsetX)
               .attr("y", event.offsetY)
@@ -102,7 +115,7 @@
               .attr("font-size", "14px")
               .attr("font-weight", "bold")
               .attr("text-anchor", "middle")
-              .text(`${d.countryName}: $${exportValue}`);
+              .text(`${d.properties.name}: $${exportValue}`);
           });
 
         // Add year slider
@@ -119,22 +132,26 @@
             updateMap(selectedYear);
           });
 
-        // Year label display
+        // Year label
         d3.select("#map1")
           .append("h4")
           .text(year);
 
-        // Function to update the map based on the selected year
+        // Update map based on selected year
         function updateMap(year) {
-          const exportsByYear = combinedData.filter(d => d.Year == year).map(d => ({
-            country: parseCountryName(d.PartnerName),
-            export: +d["Export (US$ Thousand)"] || 0
-          }));
+          const exportsByYear = combinedData
+            .filter(d => d.Year == year)
+            .map(d => ({
+              country: parseCountryName(d.PartnerName),
+              export: +d["Export (US$ Thousand)"] || 0
+            }));
 
-          const topExportersByYear = exportsByYear.sort((a, b) => b.export - a.export).slice(0, 10);
+          const topExportersByYear = exportsByYear
+            .sort((a, b) => b.export - a.export)
+            .slice(0, 10);
 
           svg.selectAll("path")
-            .attr("fill", function (d) {
+            .attr("fill", d => {
               const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
               const exporter = topExportersByYear.find(e => e.country === countryName);
               if (exporter) {
@@ -145,10 +162,7 @@
             });
         }
 
-        // Initialize map with the first year
-        updateMap(year);
-
-        // Function to parse PartnerName and normalize it for country comparison
+        // Normalize country names
         function parseCountryName(name) {
           const countryMapping = {
             "united states": "united states of america",
@@ -156,9 +170,12 @@
             "south korea": "korea, republic of",
             "united kingdom": "united kingdom of great britain and northern ireland"
           };
-
           return countryMapping[name.toLowerCase()] || name.toLowerCase();
         }
+
+        // Initialize map with the first year
+        updateMap(year);
+
       }
 
       loadData();
