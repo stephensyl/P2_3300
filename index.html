@@ -12,7 +12,7 @@
   <!-- Reference map: https://observablehq.com/@d3/world-tour -->
   <!-- https://observablehq.com/@d3/web-mercator-tiles -->
 
-
+  <!-- 
   <div id="map1">
     <h3>Highest export chart</h3>
     <svg id="highest-export" width="960" height="500"></svg>
@@ -52,6 +52,7 @@
         // Load world map
         const world = await d3.json('https://unpkg.com/world-atlas@1/world/110m.json');
         const countries = topojson.feature(world, world.objects.countries);
+        console.log("Countries:", countries);
 
         // Color scale for top 10 exporters
         const colorScale = d3.scaleLinear()
@@ -69,11 +70,15 @@
             country: parseCountryName(d.PartnerName),
             export: +d["Export(US$ Thousand)"] || 0
           }));
+        console.log("Exports by Country:", exportsByCountry);
 
-        // Sort and select the top 10 exporters
+        // Sort and select the top 10 exporters, remove regions like "World", "EU", "europe & central asia",
+        // north america, east asia & pacific.
         const topExporters = exportsByCountry
+          .filter(e => !["world", "eu", "europe & central asia", "north america", "east asia & pacific", "middle east & north afric", " world", "middle east & north africa"].includes(e.country))
           .sort((a, b) => b.export - a.export)
           .slice(0, 10);
+        console.log("Top Exporters:", topExporters);
 
         // Map projection and path
         const projection = d3.geoMercator()
@@ -88,7 +93,7 @@
           .enter().append("path")
           .attr("d", path)
           .attr("fill", d => {
-            const countryName = d.properties.name ? d.properties.name.toLowerCase() : '';
+            const countryName = d.properties.name ? d.properties.name : '';
             const exporter = exportsByCountry.find(e => e.country === countryName);
             if (exporter) {
               const rank = topExporters.findIndex(e => e.country === countryName);
@@ -180,6 +185,159 @@
 
       loadData();
     </script>
+  </div> -->
+
+
+  <div id="map1">
+    <h3>Highest export chart</h3>
+    <svg id="highest-export" width="960" height="500"></svg>
+
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    <script>
+      async function loadData() {
+
+        // Load datasets
+        const exportData = await d3.csv('data/34_years_world_export_import_dataset.csv');
+        const worldData = await d3.json('https://unpkg.com/world-atlas@1/world/110m.json');
+
+        console.log("Export Data:", exportData);
+
+        // Parse GeoJSON countries
+        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+
+        // Normalize CSV data
+        const cleanedData = exportData.map(d => ({
+          country: d.PartnerName ? d.PartnerName.trim().toLowerCase() : 'unknown',
+          year: +d.Year,
+          export: +d["Export(US$ Thousand)"] || 0
+        }));
+
+        const svg = d3.select("#highest-export");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+
+        // Color scale for top 10 exporters
+        const colorScale = d3.scaleLinear()
+          .domain([0, 9])
+          .range(["lightgreen", "green"]);
+
+        // Filter by the latest year
+        const latestYear = d3.max(cleanedData, d => d.year);
+        const exportsByYear = cleanedData.filter(d => d.year === latestYear);
+
+        // Identify the top 10 exporters
+        const topExporters = exportsByYear.sort((a, b) => b.export - a.export).slice(0, 10);
+
+        // Add projection and path
+        const projection = d3.geoMercator().scale(150).translate([width / 2, height / 1.5]);
+        const path = d3.geoPath().projection(projection);
+
+        // Create a tooltip
+        const tooltip = d3.select("body")
+          .append("div")
+          .attr("class", "tooltip")
+          .style("opacity", 0);
+
+        // Draw the map
+        svg.append("g")
+          .selectAll("path")
+          .data(countries)
+          .enter()
+          .append("path")
+          .attr("d", path)
+          .attr("fill", d => {
+            const countryName = d.properties.name ? d.properties.name.toLowerCase() : 'unknown';
+            const exporter = topExporters.find(e => e.country === countryName);
+            return exporter ? colorScale(topExporters.indexOf(exporter)) : "red";
+          })
+          .attr("stroke", "white")
+          .on("mouseover", function (event, d) {
+            const countryName = d.properties.name ? d.properties.name.toLowerCase() : 'unknown';
+            const exporter = exportsByYear.find(e => e.country === countryName);
+            const exportValue = exporter ? `$${exporter.export}` : "No data";
+
+            tooltip.transition().duration(200).style("opacity", 0.9);
+            tooltip.html(`<strong>${d.properties.name || "Unknown"}</strong><br>Export: ${exportValue}`)
+              .style("left", (event.pageX + 5) + "px")
+              .style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", function () {
+            tooltip.transition().duration(200).style("opacity", 0);
+          })
+          .on("click", function (event, d) {
+            const countryName = d.properties.name ? d.properties.name.toLowerCase() : 'unknown';
+            console.log("Country:", countryName);
+            const exporter = exportsByYear.find(e => e.country === countryName);
+            const exportValue = exporter ? exporter.export : 0;
+
+            svg.selectAll(".country-export-text").remove();
+
+            svg.append("text")
+              .attr("x", event.offsetX)
+              .attr("y", event.offsetY)
+              .attr("class", "country-export-text")
+              .attr("fill", "black")
+              .attr("font-size", "14px")
+              .attr("font-weight", "bold")
+              .attr("text-anchor", "middle")
+              .text(`${d.properties.name || "Unknown"}: $${exportValue}`);
+          });
+
+        // Extract unique years from the dataset
+        const years = Array.from(new Set(cleanedData.map(d => d.year)));
+
+        // Add year slider
+        const slider = d3.select("#map1")
+          .append("input")
+          .attr("type", "range")
+          .attr("min", d3.min(years))
+          .attr("max", d3.max(years))
+          .attr("value", d3.min(years))
+          .style("width", "960px")
+          .on("input", function () {
+            const selectedYear = +this.value; // Convert value to number
+            d3.select("#selected-year").text(selectedYear); // Update year label
+            updateMap(selectedYear); // Update map with selected year
+          });
+
+        // Year label display
+        d3.select("#map1")
+          .append("h4")
+          .attr("id", "selected-year")
+          .text(d3.min(years));
+
+        // Function to update the map based on the selected year
+        function updateMap(year) {
+          // Filter data for the selected year
+          const exportsByYear = cleanedData
+            .filter(d => d.year === year)
+            .map(d => ({
+              country: d.country.toLowerCase(),
+              export: d.export
+            }));
+
+          // Identify the top 10 exporters for the selected year
+          const topExportersByYear = exportsByYear
+            .sort((a, b) => b.export - a.export)
+            .slice(0, 10);
+
+          // Update map colors based on the new data
+          svg.selectAll("path")
+            .attr("fill", d => {
+              const countryName = d.properties.name ? d.properties.name.toLowerCase() : 'unknown';
+              const exporter = topExportersByYear.find(e => e.country === countryName);
+              return exporter ? colorScale(topExportersByYear.indexOf(exporter)) : "red";
+            });
+        }
+
+        // Initialize map with the first year
+        updateMap(d3.min(years));
+      }
+
+      loadData();
+    </script>
+
   </div>
 
 
@@ -196,27 +354,18 @@
 
 
 
-  <!-- <div id="map2">
-    <h3>Overtime Greatest export chart</h3>
+
+  <div id="map2">
+    <h3>US export chart</h3>
     <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
     <script>
-      async function loadData() {
-        const exportsData = await d3.csv('data/WITS-Country-Timeseries_exports.csv');
-        const importsData = await d3.csv('data/WITS-Country-Timeseries_imports.csv');
+      async function loadData() { }
 
-        const combinedData = exportsData.map((exportRow, index) => {
-          return {
-            ...exportRow,
-            ...importsData[index]
-          };
-        });
 
-        console.log(combinedData);
-      }
 
       loadData();
     </script>
-  </div> -->
+  </div>
 
 </body>
 
