@@ -67,7 +67,7 @@
           .filter(d => d.Year == year)
           .map(d => ({
             country: parseCountryName(d.PartnerName),
-            export: +d["Export (US$ Thousand)"] || 0
+            export: +d["Export(US$ Thousand)"] || 0
           }));
 
         // Sort and select the top 10 exporters
@@ -143,7 +143,7 @@
             .filter(d => d.Year == year)
             .map(d => ({
               country: parseCountryName(d.PartnerName),
-              export: +d["Export (US$ Thousand)"] || 0
+              export: +d["Export(US$ Thousand)"] || 0
             }));
 
           const topExportersByYear = exportsByYear
@@ -196,7 +196,7 @@
 
 
 
-  <div id="map2">
+  <!-- <div id="map2">
     <h3>Overtime Greatest export chart</h3>
     <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
     <script>
@@ -216,7 +216,7 @@
 
       loadData();
     </script>
-  </div>
+  </div> -->
 
 </body>
 
