@@ -94,42 +94,35 @@
               .attr('stroke', 'white')
               .on("mouseover", function (event, d) {
                 const countryName = d.properties.name;
-                console.log("Country:", countryName);
                 const exporter = currentExporters.find(e => e.reporter === countryName);
-                console.log("currentexporter:", currentExporters);
-                console.log("Exporter:", exporter);
-
 
                 if (exporter) {
-                  svg.append('g').selectAll('#map1').remove(); 
-                  svg.append('g')
-                    .append('rect')
-                    .attr('x', event.offsetX - 70)
-                    .attr('y', event.offsetY - 20)
-                    .attr('width', 150)
-                    .attr('height', 20)
-                    .attr('fill', 'white')
-                    .attr('rx', 5)
-                    .attr('ry', 5);
-                  svg.append('g').append('text')
-                    .attr('x', event.offsetX)
-                    .attr('y', event.offsetY - 10)
-                    .attr('fill', 'black')
-                    .attr('font-size', '12px')
-                    .attr('font-weight', 'bold')
-                    .attr('fill', 'black')
-                    .attr('font-size', '14px')
-                    .attr('font-weight', 'bold')
-                    .attr('text-anchor', 'middle')
-                    .attr('padding', '4px')
-                    .text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`)
+                  const tooltip = d3.select('body').selectAll('.tooltip')
+                    .data([exporter])
+                    .join('div')
+                    .attr('class', 'tooltip')
+                    .style('position', 'absolute')
+                    .style('background-color', 'white')
+                    .style('border', 'solid')
+                    .style('border-width', '1px')
+                    .style('border-radius', '5px')
+                    .style('padding', '10px')
+                    .style('pointer-events', 'none')
+                    .style('opacity', 0);
+
+                  tooltip.transition()
+                    .duration(200)
+                    .style('opacity', .9);
+
+                  tooltip.text(`${countryName}: $${d3.format(",.1f")(exporter.value)}`)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
                 }
 
               })
               .on("mouseout", function () {
-                svg.append('g')
-                  .selectAll('*').remove(); // get rid of tooltip 
-              })
+                d3.select('.tooltip').remove(); // remove tooltip
+              });
           });
         // .append("title")
         // .text(d => d.properties.name);
@@ -161,18 +154,18 @@
 
 
   <center>
-  <div id="map2">
-    <h3>US Export Trends Over Time (1988-2021)</h3>
-    <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
-    <script>
-      async function loadData() { }
+    <div id="map2">
+      <h3>US Export Trends Over Time (1988-2021)</h3>
+      <svg id="overtime-greatest-export-chart" width="960" height="500"></svg>
+      <script>
+        async function loadData() { }
 
 
 
-      loadData();
-    </script>
-  </div>
-</center>
+        loadData();
+      </script>
+    </div>
+  </center>
 
 </body>
 
