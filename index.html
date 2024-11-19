@@ -207,8 +207,8 @@
           ...Data2[index]
         }));
 
-        //CLean data set 
-        const topExporters = exportsByCountry
+        //CLean data set and remove unwanted data
+        const exportsByCountry = combinedData
           .filter(e => !["world", "eu", "europe & central asia", "north america",
             "east asia & pacific", "middle east & north afric", " world",
             "middle east & north africa"].includes(e.country))
