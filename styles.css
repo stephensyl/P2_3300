@@ -74,6 +74,13 @@ input[type="range"] {
 }
 
 /* Key Map */
+#key-map h3 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+  color: #333;
+  text-align: left;
+
+}
 
 #key-map ul li {
   display: flex;
